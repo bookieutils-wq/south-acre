@@ -1,0 +1,38 @@
+<% content_for :title, @homestead.name %>
+
+<%= turbo_stream_from @homestead %>
+
+<main class="acre">
+  <% if @arrival.present? %>
+    <aside class="arrival" data-controller="removal">
+      <div>
+        <h2>While you were away</h2>
+        <ul>
+          <% @arrival.each do |line| %>
+            <li><%= line %></li>
+          <% end %>
+        </ul>
+      </div>
+      <button type="button" class="text-button" data-action="removal#close">Dismiss</button>
+    </aside>
+  <% end %>
+
+  <%= turbo_frame_tag "homestead_board" do %>
+    <% if notice.present? || alert.present? %>
+      <div class="flash-stack">
+        <%= tag.p notice, class: "flash flash--notice" if notice.present? %>
+        <%= tag.p alert, class: "flash flash--alert" if alert.present? %>
+      </div>
+    <% end %>
+
+    <div
+      class="board weather-<%= @homestead.weather %>"
+      data-controller="homestead field"
+      data-field-weather-value="<%= @homestead.weather %>"
+      data-field-selected-value="<%= params[:bed].presence %>"
+      data-action="homestead:tick->field#refreshGrowth"
+    >
+      <%= render "board", homestead: @homestead, plots: @plots, events: @events %>
+    </div>
+  <% end %>
+</main>

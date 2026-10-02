@@ -1,0 +1,96 @@
+<header class="mast">
+  <div class="mast__title">
+    <p class="kicker">Idle homestead</p>
+    <%= form_with model: homestead, url: homestead_path, method: :patch, html: { class: "name-form", data: { turbo_frame: "homestead_board" } } do |form| %>
+      <%= form.label :name, "Farm name", class: "sr-only" %>
+      <%= form.text_field :name, maxlength: 32, autocomplete: "off", spellcheck: "false", aria: { label: "Farm name" } %>
+      <%= form.submit "Save name", class: "text-button" %>
+    <% end %>
+    <p class="lede">Leave this page and the acre keeps living. Come back and it will have caught up.</p>
+  </div>
+
+  <div class="mast__status">
+    <p class="weather">
+      <span class="weather__label"><%= homestead.weather_label %></span>
+      <span class="weather__detail"><%= homestead.weather_detail %></span>
+    </p>
+    <p class="coins">
+      <span class="coins__value"><%= homestead.coins %></span>
+      <span class="coins__label">coins</span>
+    </p>
+  </div>
+</header>
+
+<div class="layout">
+  <section class="field-column" aria-labelledby="field-heading">
+    <div class="field-heading-row">
+      <h2 id="field-heading">Field</h2>
+      <p class="field-tip">Drag to look around · scroll to zoom · click a bed to tend it.</p>
+    </div>
+
+    <div class="field-stage">
+      <div class="field-viewport">
+        <canvas
+          class="field-canvas"
+          data-field-target="canvas"
+          data-action="pointerdown->field#notePointerDown pointermove->field#notePointerMove pointerup->field#notePointerUp pointercancel->field#notePointerUp click->field#pick"
+          aria-label="Homestead field"
+        ></canvas>
+
+        <div class="field-controls" role="toolbar" aria-label="Field camera">
+          <button type="button" class="field-control" data-action="click->field#zoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+          <button type="button" class="field-control" data-action="click->field#zoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+          <button type="button" class="field-control field-control--wide" data-action="click->field#resetView" title="Reset view" aria-label="Reset view">Reset</button>
+        </div>
+      </div>
+
+      <div class="field-panel" data-field-target="panel">
+        <p class="field-panel__hint" data-field-target="hint">Select a bed in the field.</p>
+
+        <% plots.each do |plot| %>
+          <%= render "plots/plot", plot:, homestead: %>
+        <% end %>
+
+        <% if homestead.room_to_expand? %>
+          <article class="expansion expansion--panel">
+            <h3>New bed</h3>
+            <p>Clear another square of ground.</p>
+            <p class="expansion__cost"><%= homestead.next_plot_cost %> coins</p>
+            <%= button_to((homestead.coins >= homestead.next_plot_cost ? "Clear ground" : "Need #{homestead.next_plot_cost}"),
+                  buy_plot_path,
+                  method: :post,
+                  disabled: homestead.coins < homestead.next_plot_cost,
+                  class: "action",
+                  form: { data: { turbo_frame: "homestead_board" } }) %>
+          </article>
+        <% end %>
+      </div>
+    </div>
+  </section>
+
+  <aside class="shed" aria-labelledby="shed-heading">
+    <h2 id="shed-heading">Shed</h2>
+    <p class="shed__note">Planting fills the first empty bed. Click a bed in the field to plant there.</p>
+    <% Crop.all.each do |crop| %>
+      <%= render "homestead/seed", crop:, homestead: %>
+    <% end %>
+  </aside>
+</div>
+
+<section class="almanac" aria-labelledby="almanac-heading">
+  <h2 id="almanac-heading">Almanac</h2>
+  <% if events.any? %>
+    <ol>
+      <% events.each do |event| %>
+        <li>
+          <time datetime="<%= event.happened_at.iso8601 %>"><%= time_ago_in_words(event.happened_at) %> ago</time>
+          <p><%= event.message %></p>
+        </li>
+      <% end %>
+    </ol>
+  <% else %>
+    <p class="almanac__empty">The acre is quiet.</p>
+  <% end %>
+</section>
+
+<p class="footnote">This farm is kept in this browser. A new browser starts a new acre.</p>

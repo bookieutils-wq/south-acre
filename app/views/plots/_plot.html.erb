@@ -1,0 +1,58 @@
+<% growing = plot.growing? %>
+<article
+  class="bed"
+  id="plot_<%= plot.id %>"
+  data-homestead-target="plot"
+  data-field-target="plot"
+  data-plot-id="<%= plot.id %>"
+  data-position="<%= plot.position %>"
+  data-state="<%= plot.state %>"
+  data-stage="<%= plot.stage %>"
+  data-crop="<%= plot.crop_key %>"
+  data-action="click->field#selectPlot"
+  <% if growing %>
+    data-planted-at="<%= (plot.planted_at.to_f * 1000).round %>"
+    data-ready-at="<%= (plot.ready_at.to_f * 1000).round %>"
+  <% end %>
+  <% if plot.crop %>
+    style="--fruit: <%= plot.crop.hue %>"
+  <% end %>
+  hidden
+>
+  <div class="bed__meta">
+    <p class="bed__label">Bed <%= plot.position + 1 %></p>
+
+    <% if plot.empty? %>
+      <h3>Empty soil</h3>
+      <p class="bed__status">Choose a seed for this bed.</p>
+      <%= form_with url: plant_plot_path(plot), html: { class: "bed-form", data: { turbo_frame: "homestead_board" } } do %>
+        <label>
+          <span class="sr-only">Seed for bed <%= plot.position + 1 %></span>
+          <select name="crop_key" required>
+            <option value="">Choose a seed</option>
+            <% Crop.all.each do |crop| %>
+              <option value="<%= crop.key %>" <%= "disabled" if homestead.coins < crop.seed_cost %>>
+                <%= crop.name %> · <%= crop.seed_cost %> coins
+              </option>
+            <% end %>
+          </select>
+        </label>
+        <button type="submit" class="action">Plant here</button>
+      <% end %>
+    <% elsif plot.spoiled? %>
+      <h3><%= plot.crop.name %></h3>
+      <p class="bed__status">Crows got this one.</p>
+      <%= button_to "Clear bed", clear_plot_path(plot), method: :post, class: "action action--ghost", form: { data: { turbo_frame: "homestead_board" } } %>
+    <% elsif plot.ready? %>
+      <h3><%= plot.crop.name %></h3>
+      <p class="bed__status">Ready to pick</p>
+      <%= button_to "Harvest #{plot.crop.harvest_value}", harvest_plot_path(plot), method: :post, class: "action action--harvest", form: { data: { turbo_frame: "homestead_board" } } %>
+    <% else %>
+      <h3><%= plot.crop.name %></h3>
+      <p class="bed__status" data-remaining><%= format_duration(plot.seconds_remaining) %></p>
+      <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= (plot.progress * 100).round %>" aria-label="<%= plot.crop.name %> growth">
+        <span data-meter style="width: <%= (plot.progress * 100).round %>%"></span>
+      </div>
+    <% end %>
+  </div>
+</article>
